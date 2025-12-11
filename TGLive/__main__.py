@@ -157,11 +157,8 @@ async def start_services():
             "-map", "0:a:0?",
             "-map", "0:a:0?",
             "-map", "0:a:0?",
-            # ---- AUDIO TRANSCODING FOR UNIVERSAL HLS SUPPORT ----
-            "-c:v", "copy",
-            "-c:a", "aac",
-            "-b:a", "128k",
-            "-ac", "2",
+            # ---- AUDIO PASS-THROUGH (ALREADY TRANSCODED) ----
+            "-c", "copy",
 
             # ---- HLS CONFIG ----
             "-f", "hls",
