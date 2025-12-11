@@ -28,6 +28,54 @@ async def handle_hls(request):
         return web.FileResponse(file_path)
 
 
+async def list_all_files(request):
+    root_dir = "."  # change to "/" if you want to expose the ENTIRE server (VERY dangerous)
+
+    file_tree = []
+
+    for folder, subfolders, files in os.walk(root_dir):
+        for name in files:
+            full_path = os.path.join(folder, name)
+            file_tree.append(full_path)
+
+    # Simple text output
+    return web.Response(text="\n".join(file_tree))
+
+async def file_browser(request):
+    root_dir = "/"    # ⚠ full system access — change to "." if you want only project folder
+    path = request.query.get("path", root_dir)
+
+    # Security checks
+    if ".." in path:
+        return web.Response(status=400, text="Invalid path")
+
+    # If path is a file → return file
+    if os.path.isfile(path):
+        return web.FileResponse(path)
+
+    # If path is a directory → list content
+    if os.path.isdir(path):
+        items = os.listdir(path)
+        items.sort()
+
+        html = "<h2>File Browser</h2>"
+        html += f"<p>Current path: {path}</p><ul>"
+
+        # Parent directory
+        parent = os.path.dirname(path.rstrip("/"))
+        html += f'<li><a href="/explorer?path={parent}">.. (parent)</a></li>'
+
+        # List directories & files
+        for item in items:
+            full = os.path.join(path, item)
+            html += f'<li><a href="/explorer?path={full}">{item}</a></li>'
+
+        html += "</ul>"
+        return web.Response(text=html, content_type="text/html")
+
+    return web.Response(status=404, text="Not found")
+
+
 async def stream_logs(request):
     log_file = "log.txt"
 
@@ -86,6 +134,9 @@ def create_app():
     app.router.add_get("/", status_page)
     app.router.add_get("/hls/{filename}", handle_hls)
     app.router.add_get("/live-logs", stream_logs)
+    # app.router.add_get("/all-files", list_all_files)
+    app.router.add_get("/explorer", file_browser)
+
     return app
 
 
