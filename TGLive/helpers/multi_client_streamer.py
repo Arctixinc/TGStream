@@ -290,10 +290,10 @@ class MultiClientStreamer:
             "-map", "0:v:0",
 
             # Try common Hindi metadata variants (optional maps)
-            "-map", "0:a:m:language:hin?",
-            "-map", "0:a:m:language:hi?",
-            "-map", "0:a:m:language:Hin?",
-            "-map", "0:a:m:language:hindi?",
+            # "-map", "0:a:m:language:hin?",
+            # "-map", "0:a:m:language:hi?",
+            # "-map", "0:a:m:language:Hin?",
+            # "-map", "0:a:m:language:hindi?",
 
             # Fallbacks by index (optional)
             "-map", "0:a:2?",

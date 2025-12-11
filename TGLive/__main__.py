@@ -131,10 +131,10 @@ async def start_services():
             # ---- CONSISTENT AUDIO TRACK SELECTION ----
             # Try Hindi first (metadata-based)
             "-map", "0:v:0",
-            "-map", "0:a:m:language:hin?",
-            "-map", "0:a:m:language:Hin?",
-            "-map", "0:a:m:language:hi?",
-            "-map", "0:a:m:language:hindi?",
+            # "-map", "0:a:m:language:hin?",
+            # "-map", "0:a:m:language:Hin?",
+            # "-map", "0:a:m:language:hi?",
+            # "-map", "0:a:m:language:hindi?",
 
             # Fallback to common Indian track ordering
             "-map", "0:a:2?",
