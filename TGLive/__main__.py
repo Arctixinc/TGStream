@@ -102,22 +102,57 @@ async def start_services():
         # )
 
 
+        # ffmpeg_hls = await asyncio.create_subprocess_exec(
+        #     "ffmpeg",
+        #     "-re",
+        #     "-loglevel", "error",
+        #     "-i", "pipe:0",
+        #     "-map", "0:v",
+        #     "-map", "0:a?",
+        #     "-c:v", "copy",
+        #     "-c:a", "aac",
+        #     "-b:a", "128k",
+        #     "-ac", "2",
+        #     "-f", "hls",
+        #     "-hls_time", "4",
+        #     "-hls_list_size", "6",
+        #     "-hls_flags", "delete_segments+append_list+omit_endlist",
+        #     "hls/live.m3u8",
+        #     stdin=asyncio.subprocess.PIPE,
+        #     stdout=asyncio.subprocess.DEVNULL,
+        #     stderr=asyncio.subprocess.PIPE
+        # )
         ffmpeg_hls = await asyncio.create_subprocess_exec(
             "ffmpeg",
             "-re",
             "-loglevel", "error",
             "-i", "pipe:0",
-            "-map", "0:v",
-            "-map", "0:a?",
+
+            # ---- CONSISTENT AUDIO TRACK SELECTION ----
+            # Try Hindi first (metadata-based)
+            "-map", "0:v:0",
+            "-map", "0:a:m:language:hin?",
+            "-map", "0:a:m:language:hi?",
+            "-map", "0:a:m:language:hindi?",
+
+            # Fallback to common Indian track ordering
+            "-map", "0:a:2?",
+            "-map", "0:a:1?",
+            "-map", "0:a:0?",
+
+            # ---- AUDIO TRANSCODING FOR UNIVERSAL HLS SUPPORT ----
             "-c:v", "copy",
             "-c:a", "aac",
             "-b:a", "128k",
             "-ac", "2",
+
+            # ---- HLS CONFIG ----
             "-f", "hls",
             "-hls_time", "4",
             "-hls_list_size", "6",
             "-hls_flags", "delete_segments+append_list+omit_endlist",
             "hls/live.m3u8",
+
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.PIPE
