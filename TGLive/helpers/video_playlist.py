@@ -147,7 +147,11 @@ class VideoPlaylistManager:
 
         async def loop():
             while True:
-                await self.check_for_new_videos()
+                try:
+                    await self.check_for_new_videos()
+                except Exception as e:
+                    LOGGER.error(f"Auto-checker error: {e}", exc_info=True)
+
                 await asyncio.sleep(120)
 
         self.auto_task = asyncio.create_task(loop())

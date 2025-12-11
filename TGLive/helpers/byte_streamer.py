@@ -6,7 +6,7 @@ from pyrogram.errors import AuthBytesInvalid
 from pyrogram.file_id import FileId
 from TGLive.logger import LOGGER
 from TGLive.helpers.exception import FIleNotFound
-from TGLive.helpers.bot import work_loads
+from TGLive.helpers.bot import work_loads, multi_clients
 from TGLive.helpers.utils import get_file_ids  # use your robust helper
 
 
@@ -34,26 +34,58 @@ class ByteStreamer:
     async def yield_file(
         self,
         file_id: FileId,
-        index: int,
+        index: int,  # Ignored for single-client selection, used for fallback logic if needed
         offset: int,
         chunk_size: int,
         part_count: int,
     ):
         """
         Yield raw file bytes fetched via upload.GetFile.
-        `index` is the work_loads client index (used only for accounting).
+        Uses STRIPING (Round-Robin) across all available `multi_clients`.
         """
-        # protect against missing index in work_loads
-        if index not in work_loads:
-            work_loads[index] = 0
+        # Identify available clients (excluding bot client 0 if desired, or include all)
+        # Usually client 0 is the Bot, clients 1..N are Userbots.
+        # If we have userbots, prefer them. If only bot, use bot.
 
-        work_loads[index] += 1
+        # Filter valid clients
+        active_clients = [
+            cid for cid, c in multi_clients.items()
+            if c.is_connected and cid != 0
+        ]
+        if not active_clients:
+            # Fallback to bot if no userbots
+            active_clients = [0] if 0 in multi_clients else []
+
+        if not active_clients:
+            LOGGER.error("No active clients available for streaming!")
+            return
+
+        active_clients.sort() # ensure deterministic order
+        client_count = len(active_clients)
+
+        LOGGER.info(f"ByteStreamer: Striping download across {client_count} clients: {active_clients}")
+
+        location = self.get_location(file_id)
+
+        # Increment load for all active clients involved
+        for cid in active_clients:
+             if cid not in work_loads: work_loads[cid] = 0
+             work_loads[cid] += 1
+
         try:
-            media_session = await self.generate_media_session(self.client, file_id)
-            location = self.get_location(file_id)
-
             for part in range(part_count):
+                # Round-robin selection
+                client_idx = active_clients[part % client_count]
+                current_client = multi_clients.get(client_idx)
+
+                if not current_client:
+                    LOGGER.error(f"Client {client_idx} missing during stream loop.")
+                    break
+
                 try:
+                    # Get session for THIS specific client
+                    media_session = await self.generate_media_session(current_client, file_id)
+
                     r = await media_session.send(
                         raw.functions.upload.GetFile(
                             location=location,
@@ -62,7 +94,8 @@ class ByteStreamer:
                         )
                     )
                 except Exception as e:
-                    LOGGER.error(f"Error calling GetFile: {e}", exc_info=True)
+                    LOGGER.error(f"Error calling GetFile (Client {client_idx}): {e}", exc_info=True)
+                    # Simple retry logic could go here, but for now break/fail
                     break
 
                 # `r` may be upload.File or other types
@@ -73,15 +106,14 @@ class ByteStreamer:
                     offset += len(r.bytes)
                 else:
                     break
-
         finally:
-            # ensure we always decrement
-            try:
-                work_loads[index] -= 1
-                if work_loads[index] < 0:
-                    work_loads[index] = 0
-            except Exception:
-                work_loads[index] = 0
+            # Decrement load
+            for cid in active_clients:
+                try:
+                    work_loads[cid] -= 1
+                    if work_loads[cid] < 0: work_loads[cid] = 0
+                except:
+                    pass
 
     async def generate_media_session(self, client: Client, file_id: FileId):
         media_session = client.media_sessions.get(file_id.dc_id)

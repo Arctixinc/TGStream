@@ -277,10 +277,11 @@ class MultiClientStreamer:
         file_size = getattr(file_info, "file_size", 0) or 0
         part_count = (file_size // (512 * 1024)) + 1 if file_size else 1
 
-        index = self._choose_least_loaded_index()
+        # NOTE: Index is now ignored by ByteStreamer in favor of internal striping
+        index = 0
 
         LOGGER.info(
-            f"MultiClientStreamer: streaming message={message_id} size={file_size} bytes using client_index={index} (parts={part_count})"
+            f"MultiClientStreamer: streaming message={message_id} size={file_size} bytes (parts={part_count}) [Striped Mode]"
         )
 
         # prepare mapping args:
