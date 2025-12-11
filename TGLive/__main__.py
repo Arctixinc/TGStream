@@ -132,6 +132,7 @@ async def start_services():
             # Try Hindi first (metadata-based)
             "-map", "0:v:0",
             "-map", "0:a:m:language:hin?",
+            "-map", "0:a:m:language:Hin?",
             "-map", "0:a:m:language:hi?",
             "-map", "0:a:m:language:hindi?",
 
