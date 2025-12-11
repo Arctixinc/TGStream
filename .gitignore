@@ -1,0 +1,20 @@
+venv/
+log.txt
+
+*.session
+*.session-journal
+
+
+**/*.session
+**/*.session-journal
+
+
+__pycache__/
+*.pyc
+
+# Termux temp files
+*.swp
+
+hls/
+tansition.ts
+*.mp4
