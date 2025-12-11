@@ -6,7 +6,7 @@ from pyrogram.errors import AuthBytesInvalid
 from pyrogram.file_id import FileId
 from TGLive.logger import LOGGER
 from TGLive.helpers.exception import FIleNotFound
-from TGLive.helpers.bot import work_loads
+from TGLive.helpers.bot import work_loads, multi_clients
 from TGLive.helpers.utils import get_file_ids  # use your robust helper
 
 
@@ -41,19 +41,29 @@ class ByteStreamer:
     ):
         """
         Yield raw file bytes fetched via upload.GetFile.
-        `index` is the work_loads client index (used only for accounting).
+        Uses round-robin strategy across available clients for each chunk.
         """
         # protect against missing index in work_loads
         if index not in work_loads:
             work_loads[index] = 0
 
         work_loads[index] += 1
+
         try:
-            media_session = await self.generate_media_session(self.client, file_id)
+            client_ids = list(multi_clients.keys())
+            if not client_ids:
+                client_ids = [0]
+                multi_clients[0] = self.client
+
             location = self.get_location(file_id)
 
             for part in range(part_count):
+                # Round-robin selection of client
+                current_client_id = client_ids[(index + part) % len(client_ids)]
+                current_client = multi_clients.get(current_client_id, self.client)
+
                 try:
+                    media_session = await self.generate_media_session(current_client, file_id)
                     r = await media_session.send(
                         raw.functions.upload.GetFile(
                             location=location,
@@ -62,7 +72,7 @@ class ByteStreamer:
                         )
                     )
                 except Exception as e:
-                    LOGGER.error(f"Error calling GetFile: {e}", exc_info=True)
+                    LOGGER.error(f"Error calling GetFile with client {current_client_id}: {e}", exc_info=True)
                     break
 
                 # `r` may be upload.File or other types
