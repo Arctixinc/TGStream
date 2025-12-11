@@ -137,10 +137,26 @@ async def start_services():
             # "-map", "0:a:m:language:hindi?",
 
             # Fallback to common Indian track ordering
-            "-map", "0:a:2?",
-            "-map", "0:a:1?",
+            # "-map", "0:a:2?",
+            # "-map", "0:a:1?",
+            # "-map", "0:a:0?",
+            # First try to fill 7 real audio tracks if available
             "-map", "0:a:0?",
+            "-map", "0:a:1?",
+            "-map", "0:a:2?",
+            "-map", "0:a:3?",
+            "-map", "0:a:4?",
+            "-map", "0:a:5?",
+            "-map", "0:a:6?",
 
+            # If the above are missing, duplicate track 0 to pad to 7 tracks
+            "-map", "0:a:0?",
+            "-map", "0:a:0?",
+            "-map", "0:a:0?",
+            "-map", "0:a:0?",
+            "-map", "0:a:0?",
+            "-map", "0:a:0?",
+            "-map", "0:a:0?",
             # ---- AUDIO TRANSCODING FOR UNIVERSAL HLS SUPPORT ----
             "-c:v", "copy",
             "-c:a", "aac",

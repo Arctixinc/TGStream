@@ -286,20 +286,42 @@ class MultiClientStreamer:
         # prepare mapping args:
         # 1) try Hindi metadata variants
         # 2) fallback to common track indices (2,1,0)
+        # mapping = [
+        #     "-map", "0:v:0",
+
+        #     # Try common Hindi metadata variants (optional maps)
+        #     # "-map", "0:a:m:language:hin?",
+        #     # "-map", "0:a:m:language:hi?",
+        #     # "-map", "0:a:m:language:Hin?",
+        #     # "-map", "0:a:m:language:hindi?",
+
+        #     # Fallbacks by index (optional)
+        #     "-map", "0:a:2?",
+        #     "-map", "0:a:1?",
+        #     "-map", "0:a:0?",
+        # ]
         mapping = [
             "-map", "0:v:0",
 
-            # Try common Hindi metadata variants (optional maps)
-            # "-map", "0:a:m:language:hin?",
-            # "-map", "0:a:m:language:hi?",
-            # "-map", "0:a:m:language:Hin?",
-            # "-map", "0:a:m:language:hindi?",
-
-            # Fallbacks by index (optional)
-            "-map", "0:a:2?",
+            # First try to fill 7 real audio tracks if available
+            "-map", "0:a:0?",
             "-map", "0:a:1?",
+            "-map", "0:a:2?",
+            "-map", "0:a:3?",
+            "-map", "0:a:4?",
+            "-map", "0:a:5?",
+            "-map", "0:a:6?",
+
+            # If the above are missing, duplicate track 0 to pad to 7 tracks
+            "-map", "0:a:0?",
+            "-map", "0:a:0?",
+            "-map", "0:a:0?",
+            "-map", "0:a:0?",
+            "-map", "0:a:0?",
+            "-map", "0:a:0?",
             "-map", "0:a:0?",
         ]
+
 
         # Start ffmpeg that converts incoming raw container bytes -> mpegts
         ffmpeg_clean = await asyncio.create_subprocess_exec(
